@@ -260,6 +260,11 @@ async def sprint(ctx, velocidad: int):
         f"🔋 Estamina restante: **{estamina[user_id]}**"
     )
 
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("Lero lero no podes\n https://tenor.com/view/umamusume-satono-diamond-lick-funny-gif-17230432331182465957")
+
 
 # =========================
 # INICIO DEL BOT
