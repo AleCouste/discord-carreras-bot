@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import random
+import os
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -35,19 +36,6 @@ async def on_ready():
 async def ping(ctx):
     await ctx.send("🏁 Pong!")
 
-# --- VELOCIDAD / METROS ---
-@bot.command()
-async def carrera(ctx, velocidad: int):
-    dado = random.randint(1, 10)
-    metros = velocidad * dado // 10
-
-    await ctx.send(
-        f"🎲 Dado: {dado}\n"
-        f"⚡ Velocidad: {velocidad}\n"
-        f"🏃 Metros recorridos: **{metros}**"
-    )
-
-# --- ESTAMINA ---
 @bot.command()
 async def set_estamina(ctx, cantidad: int):
     if cantidad <= 0:
@@ -58,32 +46,39 @@ async def set_estamina(ctx, cantidad: int):
     await ctx.send(f"🔋 Estamina establecida en **{cantidad}**.")
 
 @bot.command()
-async def turno(ctx, tipo: str):
+async def carrera(ctx, velocidad: int, tipo: str):
     user_id = ctx.author.id
 
     if user_id not in estamina:
-        await ctx.send("❌ No tenés estamina. Usá `!set_estamina`.")
+        await ctx.send("❌ Primero usá `!set_estamina`.")
         return
 
     tipo = tipo.lower()
 
     if tipo not in GASTO_ESTAMINA:
-        await ctx.send("❌ Tipo inválido: sprint / medium / long")
+        await ctx.send("❌ Tipo inválido. Usá: sprint / medium / long")
         return
 
     gasto = GASTO_ESTAMINA[tipo]
 
     if estamina[user_id] < gasto:
-        await ctx.send("🥵 Estás demasiado cansado para seguir.")
+        await ctx.send("🥵 Estás demasiado cansado para correr este turno.")
         return
 
+    # CÁLCULO DE CARRERA
+    dado = random.randint(1, 10)
+    metros = velocidad * dado // 10
+
+    # DESCUENTO
     estamina[user_id] -= gasto
 
     await ctx.send(
-        f"🔁 Turno de **{tipo.upper()}**\n"
-        f"🔥 Gasto: {gasto}\n"
+        f"🏁 **CARRERA ({tipo.upper()})**\n"
+        f"🎲 Dado: {dado}\n"
+        f"⚡ Velocidad: {velocidad}\n"
+        f"🏃 Metros recorridos: **{metros}**\n"
+        f"🔥 Gasto de estamina: {gasto}\n"
         f"🔋 Estamina restante: **{estamina[user_id]}**"
     )
 
-import os
 bot.run(os.getenv("DISCORD_TOKEN"))
