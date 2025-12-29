@@ -12,12 +12,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # DATOS GLOBALES
 # =========================
 
-# Estamina por usuario
-estamina = {}  # {user_id: valor}
-
-# Carrera multijugador
+estamina = {}            # {user_id: valor}
 carrera_activa = False
-participantes = {}  # {user_id: metros}
+participantes = {}       # {user_id: metros}
+tipo_carrera = None      # sprint / medium / long
 
 GASTO_ESTAMINA = {
     "sprint": 60,
@@ -68,18 +66,29 @@ async def status(ctx):
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def crear_carrera(ctx):
-    global carrera_activa, participantes
+async def crear_carrera(ctx, tipo: str):
+    global carrera_activa, participantes, tipo_carrera
+
+    tipo = tipo.lower()
+
+    if tipo not in GASTO_ESTAMINA:
+        await ctx.send("❌ Tipo inválido. Usá: sprint / medium / long")
+        return
 
     carrera_activa = True
+    tipo_carrera = tipo
     participantes = {}
 
-    await ctx.send("🏁 **¡Carrera iniciada!** Usá `!unirse` para participar.")
+    await ctx.send(
+        f"🏁 **¡Carrera iniciada!**\n"
+        f"📌 Tipo de carrera: **{tipo.upper()}**\n"
+        f"👉 Usá `!unirse` para participar."
+    )
 
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def finalizar_carrera(ctx):
-    global carrera_activa, participantes
+    global carrera_activa, participantes, tipo_carrera
 
     if not carrera_activa:
         await ctx.send("❌ No hay ninguna carrera activa.")
@@ -89,6 +98,7 @@ async def finalizar_carrera(ctx):
 
     if not participantes:
         await ctx.send("🏁 Carrera finalizada sin participantes.")
+        tipo_carrera = None
         return
 
     ranking = sorted(participantes.items(), key=lambda x: x[1], reverse=True)
@@ -99,6 +109,7 @@ async def finalizar_carrera(ctx):
         mensaje += f"{i}. {user.display_name} — {metros} m\n"
 
     participantes = {}
+    tipo_carrera = None
     await ctx.send(mensaje)
 
 @bot.command()
@@ -122,7 +133,7 @@ async def posiciones(ctx):
 
     ranking = sorted(participantes.items(), key=lambda x: x[1], reverse=True)
 
-    mensaje = "🏆 **POSICIONES ACTUALES**\n"
+    mensaje = f"🏆 **POSICIONES ({tipo_carrera.upper()})**\n"
     for i, (uid, metros) in enumerate(ranking, start=1):
         user = await bot.fetch_user(uid)
         mensaje += f"{i}. {user.display_name} — {metros} m\n"
@@ -134,7 +145,7 @@ async def posiciones(ctx):
 # =========================
 
 @bot.command()
-async def carrera(ctx, velocidad: int, tipo: str):
+async def correr(ctx, velocidad: int):
     user_id = ctx.author.id
 
     if not carrera_activa:
@@ -149,28 +160,20 @@ async def carrera(ctx, velocidad: int, tipo: str):
         await ctx.send("❌ Primero usá `!set_estamina`.")
         return
 
-    tipo = tipo.lower()
-
-    if tipo not in GASTO_ESTAMINA:
-        await ctx.send("❌ Tipo inválido. Usá: sprint / medium / long")
-        return
-
-    gasto = GASTO_ESTAMINA[tipo]
+    gasto = GASTO_ESTAMINA[tipo_carrera]
 
     if estamina[user_id] < gasto:
         await ctx.send("🥵 Estás demasiado cansado para correr este turno.")
         return
 
-    # Cálculo
     dado = random.randint(1, 10)
     metros = velocidad * dado // 10
 
-    # Aplicar resultados
     estamina[user_id] -= gasto
     participantes[user_id] += metros
 
     await ctx.send(
-        f"🏁 **CARRERA ({tipo.upper()})**\n"
+        f"🏁 **CARRERA ({tipo_carrera.upper()})**\n"
         f"🎲 Dado: {dado}\n"
         f"⚡ Velocidad: {velocidad}\n"
         f"🏃 Avanzás: **{metros} m**\n"
