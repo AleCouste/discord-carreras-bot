@@ -181,6 +181,85 @@ async def correr(ctx, velocidad: int):
         f"🔥 Gasto de estamina: {gasto}\n"
         f"🔋 Estamina restante: **{estamina[user_id]}**"
     )
+    
+@bot.command()
+async def trote(ctx, velocidad: int):
+    user_id = ctx.author.id
+
+    if not carrera_activa or user_id not in participantes:
+        await ctx.send("❌ No estás en una carrera activa.")
+        return
+
+    if user_id not in estamina:
+        await ctx.send("❌ Primero usá `!set_estamina`.")
+        return
+
+    base = GASTO_ESTAMINA[tipo_carrera]
+    recuperacion = base // 2
+
+    dado = random.randint(1, 5)
+    metros = velocidad * dado // 10
+
+    estamina[user_id] += recuperacion
+    participantes[user_id] += metros
+
+    await ctx.send(
+        f"🏁 **CARRERA ({tipo_carrera.upper()})**\n"
+        f"⚡ Velocidad: {velocidad}\n"
+        f"🎲 Dado: {dado}\n"
+        f"📏 Avanzás: **{metros} m**\n"
+        f"📏 Total acumulado: **{participantes[user_id]} m**\n"
+        f"💚 Recuperás estamina: **+{recuperacion}**\n"
+        f"🔋 Estamina actual: **{estamina[user_id]}**"
+    )
+
+@bot.command()
+async def sprint(ctx, velocidad: int):
+    user_id = ctx.author.id
+
+    if not carrera_activa or user_id not in participantes:
+        await ctx.send("❌ No estás en una carrera activa.")
+        return
+
+    if user_id not in estamina:
+        await ctx.send("❌ Primero usá `!set_estamina`.")
+        return
+
+    base = GASTO_ESTAMINA[tipo_carrera]
+    gasto = base * 2
+
+    dado = random.randint(5, 15)
+
+    # FALLO CONTROLADO
+    if dado == 5:
+        await ctx.send(
+            f"⚡ **SPRINT FALLIDO**\n"
+            f"🎲 Dado: 5\n"
+            f"😖 Tropiezas al acelerar.\n"
+            f"📏 No avanzás metros.\n"
+            f"🔋 Estamina conservada: **{estamina[user_id]}**"
+        )
+        return
+
+    if estamina[user_id] < gasto:
+        await ctx.send("🥵 No tenés estamina suficiente para sprintar.")
+        return
+
+    metros = velocidad * dado // 10
+
+    estamina[user_id] -= gasto
+    participantes[user_id] += metros
+
+    await ctx.send(
+        f"🏁 **CARRERA ({tipo_carrera.upper()})**\n"
+        f"⚡ Velocidad: {velocidad}\n"
+        f"🎲 Dado: {dado}\n"
+        f"📏 Avanzás: **{metros} m**\n"
+        f"📏 Total acumulado: **{participantes[user_id]} m**\n"
+        f"🔥 Gasto de estamina: **-{gasto}**\n"
+        f"🔋 Estamina restante: **{estamina[user_id]}**"
+    )
+
 
 # =========================
 # INICIO DEL BOT
