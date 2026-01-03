@@ -135,6 +135,28 @@ async def finalizar_carrera(ctx, nombre: str):
 
     del carreras[nombre]
     await ctx.send(mensaje)
+    
+@bot.command()
+async def posiciones(ctx, nombre: str):
+    if nombre not in carreras:
+        await ctx.send("❌ Esa carrera no existe.")
+        return
+
+    carrera = carreras[nombre]
+    participantes = carrera["participantes"]
+
+    if not participantes:
+        await ctx.send("📭 No hay participantes en esta carrera.")
+        return
+
+    ranking = sorted(participantes.items(), key=lambda x: x[1], reverse=True)
+
+    mensaje = f"📊 **POSICIONES — {nombre}**\n"
+    for i, (uid, metros) in enumerate(ranking, start=1):
+        user = await bot.fetch_user(uid)
+        mensaje += f"{i}. {user.display_name} — {metros} m\n"
+
+    await ctx.send(mensaje)
 
 # =========================
 # ACCIONES DE CARRERA
@@ -165,12 +187,14 @@ async def correr(ctx, velocidad: int):
     estamina[ctx.author.id] -= gasto
     carrera["participantes"][ctx.author.id] += metros
 
-    await ctx.send(
-        f"🏁 **{nombre} ({tipo.upper()})**\n"
-        f"🎲 Dado: {dado}\n"
-        f"📏 Avanzás: **{metros} m**\n"
-        f"🔋 Estamina: **{estamina[ctx.author.id]}**"
-    )
+await ctx.send(
+    f"🏁 **{nombre} ({tipo.upper()})**\n"
+    f"🎲 Dado: {dado}\n"
+    f"📏 Avance este turno: **{metros} m**\n"
+    f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
+    f"🔋 Estamina: **{estamina[ctx.author.id]}**"
+)
+
 
 @bot.command()
 async def trote(ctx, velocidad: int):
@@ -190,9 +214,10 @@ async def trote(ctx, velocidad: int):
     carrera["participantes"][ctx.author.id] += metros
 
     await ctx.send(
-        f"🚶 **TROTE — {nombre}**\n"
+        f"🏁 **{nombre} ({tipo.upper()})**\n"
         f"🎲 Dado: {dado}\n"
-        f"📏 Avance: **{metros} m**\n"
+        f"📏 Avance este turno: **{metros} m**\n"
+        f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
         f"💚 Recuperás: +{recupera}\n"
         f"🔋 Estamina: **{estamina[ctx.author.id]}**"
     )
@@ -229,9 +254,10 @@ async def sprint(ctx, velocidad: int):
     carrera["participantes"][ctx.author.id] += metros
 
     await ctx.send(
-        f"⚡ **SPRINT — {nombre}**\n"
+        f"🏁 **{nombre} ({tipo.upper()})**\n"
         f"🎲 Dado: {dado}\n"
-        f"📏 Avance: **{metros} m**\n"
+        f"📏 Avance este turno: **{metros} m**\n"
+        f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
         f"🔥 Gasto: -{gasto}\n"
         f"🔋 Estamina: **{estamina[ctx.author.id]}**"
     )
