@@ -162,18 +162,34 @@ async def trote(ctx, velocidad: int):
     dado = random.randint(1, 5)
     metros = velocidad * dado // 10
 
-    estamina[ctx.author.id] = estamina.get(ctx.author.id, 0) + recupera
+    metros_antes = carrera["participantes"][ctx.author.id]
     carrera["participantes"][ctx.author.id] += metros
+    metros_despues = carrera["participantes"][ctx.author.id]
+
+    estamina[ctx.author.id] = estamina.get(ctx.author.id, 0) + recupera
+
+    msg_curva = ""
+    antes = en_curva(carrera, metros_antes)
+    despues = en_curva(carrera, metros_despues)
+
+    if not antes and despues:
+        msg_curva = "\n🌀 **Entrás en una curva**"
+    elif antes and not despues:
+        msg_curva = "\n➡️ **Salís de la curva**"
 
     await ctx.send(
-        f"🚶 **TROTE — {nombre}**\n"
-        f"🎲 {dado}\n"
-        f"📏 +{metros} m\n"
-        f"💚 Recuperás +{recupera}\n"
-        f"🔋 Estamina: {estamina[ctx.author.id]}"
+        f"🚶 **TROTE ({tipo.upper()})**\n"
+        f"🎲 Dado: {dado}\n"
+        f"⚡ Velocidad: {velocidad}\n"
+        f"🏃 Avanzás: **{metros} m**\n"
+        f"📏 Total acumulado: **{metros_despues} m**\n"
+        f"💚 Recuperás estamina: +{recupera}\n"
+        f"🔋 Estamina actual: **{estamina[ctx.author.id]}**"
+        f"{msg_curva}"
     )
 
-@bot.command()
+
+@@bot.command()
 async def correr(ctx, velocidad: int):
     nombre, carrera = carrera_de_usuario(ctx.author.id)
     if not carrera:
@@ -185,27 +201,41 @@ async def correr(ctx, velocidad: int):
     if estamina.get(ctx.author.id, 0) < gasto:
         return await ctx.send("🥵 Sin estamina.")
 
-    curva = en_curva(carrera, carrera["participantes"][ctx.author.id])
-
-    if curva and random.randint(1, 10) <= 4:
-        estamina[ctx.author.id] -= gasto // 2
-        return await ctx.send("💥 Fallás en la curva.")
+    metros_antes = carrera["participantes"][ctx.author.id]
 
     dado = random.randint(1, 10)
     metros = velocidad * dado // 10
 
     estamina[ctx.author.id] -= gasto
     carrera["participantes"][ctx.author.id] += metros
+    metros_despues = carrera["participantes"][ctx.author.id]
 
-    if carrera["participantes"][ctx.author.id] >= carrera["meta"]:
+    # 🏁 victoria automática
+    if metros_despues >= carrera["meta"]:
         msg = await finalizar_carrera(nombre, carrera)
         return await ctx.send(msg)
 
+    # 🌀 detección de entrada / salida de curva
+    msg_curva = ""
+    antes = en_curva(carrera, metros_antes)
+    despues = en_curva(carrera, metros_despues)
+
+    if not antes and despues:
+        msg_curva = "\n🌀 **Entrás en una curva**"
+    elif antes and not despues:
+        msg_curva = "\n➡️ **Salís de la curva**"
+
     await ctx.send(
-        f"🏃 **CORRER — {nombre}**\n"
-        f"🎲 {dado} | +{metros} m\n"
-        f"🔋 Estamina: {estamina[ctx.author.id]}"
+        f"🏁 **CARRERA ({tipo.upper()})**\n"
+        f"🎲 Dado: {dado}\n"
+        f"⚡ Velocidad: {velocidad}\n"
+        f"🏃 Avanzás: **{metros} m**\n"
+        f"📏 Total acumulado: **{metros_despues} m**\n"
+        f"🔥 Gasto de estamina: {gasto}\n"
+        f"🔋 Estamina restante: **{estamina[ctx.author.id]}**"
+        f"{msg_curva}"
     )
+
 
 @bot.command()
 async def sprint(ctx, velocidad: int):
@@ -226,7 +256,7 @@ async def sprint(ctx, velocidad: int):
         return await ctx.send(
             f"⚡ **SPRINT FALLIDO**\n"
             f"🎲 {dado}\n"
-            f"💥 Perdís el control.\n"
+            f"💥 Perdíste el control.\n"
             f"🔋 Estamina conservada."
         )
 
@@ -239,11 +269,14 @@ async def sprint(ctx, velocidad: int):
         return await ctx.send(msg)
 
     await ctx.send(
-        f"⚡ **SPRINT — {nombre}**\n"
-        f"🎲 {dado}\n"
-        f"📏 +{metros} m\n"
-        f"🔥 Gasto: -{gasto}\n"
-        f"🔋 Estamina: {estamina[ctx.author.id]}"
+        f"⚡ **SPRINT ({tipo.upper()})**\n"
+        f"🎲 Dado: {dado}\n"
+        f"⚡ Velocidad: {velocidad}\n"
+        f"🏃 Avanzás: **{metros} m**\n"
+        f"📏 Total acumulado: **{metros_despues} m**\n"
+        f"🔥 Gasto de estamina: {gasto}\n"
+        f"🔋 Estamina restante: **{estamina[ctx.author.id]}**"
+        f"{msg_curva}"
     )
 
 # =========================
