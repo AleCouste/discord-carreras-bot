@@ -189,7 +189,7 @@ async def trote(ctx, velocidad: int):
     )
 
 
-@@bot.command()
+@bot.command()
 async def correr(ctx, velocidad: int):
     nombre, carrera = carrera_de_usuario(ctx.author.id)
     if not carrera:
@@ -305,4 +305,5 @@ async def on_command_error(ctx, error):
         await ctx.send("🚫 Sin permisos.")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
