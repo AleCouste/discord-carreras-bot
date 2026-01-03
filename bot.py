@@ -13,7 +13,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # =========================
 
 estamina = {}   # {user_id: valor}
-
 carreras = {}   # {nombre: {creador, tipo, participantes}}
 
 GASTO_ESTAMINA = {
@@ -39,6 +38,14 @@ def carrera_de_usuario(user_id):
 @bot.event
 async def on_ready():
     print(f"Bot conectado como {bot.user}")
+
+# =========================
+# COMANDOS BÁSICOS
+# =========================
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send("🏓 Pong! El bot está activo.")
 
 # =========================
 # ESTAMINA
@@ -98,10 +105,7 @@ async def unirse(ctx, nombre: str):
 
     ya_nombre, _ = carrera_de_usuario(ctx.author.id)
     if ya_nombre:
-        await ctx.send(
-            f"❌ Ya estás participando en **{ya_nombre}**.\n"
-            f"Primero salí o finalizá esa carrera."
-        )
+        await ctx.send(f"❌ Ya estás participando en **{ya_nombre}**.")
         return
 
     carreras[nombre]["participantes"][ctx.author.id] = 0
@@ -121,11 +125,6 @@ async def finalizar_carrera(ctx, nombre: str):
 
     participantes = carrera["participantes"]
 
-    if not participantes:
-        del carreras[nombre]
-        await ctx.send("🏁 Carrera finalizada sin participantes.")
-        return
-
     ranking = sorted(participantes.items(), key=lambda x: x[1], reverse=True)
 
     mensaje = f"🏆 **RESULTADOS — {nombre}**\n"
@@ -135,18 +134,17 @@ async def finalizar_carrera(ctx, nombre: str):
 
     del carreras[nombre]
     await ctx.send(mensaje)
-    
+
 @bot.command()
 async def posiciones(ctx, nombre: str):
     if nombre not in carreras:
         await ctx.send("❌ Esa carrera no existe.")
         return
 
-    carrera = carreras[nombre]
-    participantes = carrera["participantes"]
+    participantes = carreras[nombre]["participantes"]
 
     if not participantes:
-        await ctx.send("📭 No hay participantes en esta carrera.")
+        await ctx.send("📭 No hay participantes.")
         return
 
     ranking = sorted(participantes.items(), key=lambda x: x[1], reverse=True)
@@ -165,13 +163,12 @@ async def posiciones(ctx, nombre: str):
 @bot.command()
 async def correr(ctx, velocidad: int):
     nombre, carrera = carrera_de_usuario(ctx.author.id)
-
     if not carrera:
-        await ctx.send("❌ No estás en ninguna carrera.")
+        await ctx.send("❌ No estás en una carrera.")
         return
 
     if ctx.author.id not in estamina:
-        await ctx.send("❌ Primero usá `!set_estamina`.")
+        await ctx.send("❌ Usá `!set_estamina` primero.")
         return
 
     tipo = carrera["tipo"]
@@ -188,21 +185,18 @@ async def correr(ctx, velocidad: int):
     carrera["participantes"][ctx.author.id] += metros
 
     await ctx.send(
-        f"🏁 **{nombre} ({tipo.upper()})**\n"
+        f"🏃 **CORRER — {nombre} ({tipo.upper()})**\n"
         f"🎲 Dado: {dado}\n"
-        f"📏 Avance este turno: **{metros} m**\n"
-        f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
-        f"🔋 Estamina: **{estamina[ctx.author.id]}**"
+        f"📏 +{metros} m\n"
+        f"📍 Total: {carrera['participantes'][ctx.author.id]} m\n"
+        f"🔋 Estamina: {estamina[ctx.author.id]}"
     )
-
-
 
 @bot.command()
 async def trote(ctx, velocidad: int):
     nombre, carrera = carrera_de_usuario(ctx.author.id)
-
     if not carrera:
-        await ctx.send("❌ No estás en ninguna carrera.")
+        await ctx.send("❌ No estás en una carrera.")
         return
 
     tipo = carrera["tipo"]
@@ -218,114 +212,73 @@ async def trote(ctx, velocidad: int):
     await ctx.send(
         f"🚶 **TROTE — {nombre} ({tipo.upper()})**\n"
         f"🎲 Dado: {dado}\n"
-        f"📏 Avance este turno: **{metros} m**\n"
-        f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
-        f"💚 Recuperás: +{recupera}\n"
-        f"🔋 Estamina: **{estamina[ctx.author.id]}**"
+        f"📏 +{metros} m\n"
+        f"📍 Total: {carrera['participantes'][ctx.author.id]} m\n"
+        f"💚 +{recupera} estamina\n"
+        f"🔋 {estamina[ctx.author.id]}"
     )
-
 
 @bot.command()
 async def sprint(ctx, velocidad: int):
     nombre, carrera = carrera_de_usuario(ctx.author.id)
-
     if not carrera:
-        await ctx.send("❌ No estás en ninguna carrera.")
+        await ctx.send("❌ No estás en una carrera.")
         return
 
-    base = GASTO_ESTAMINA[carrera["tipo"]]
-    gasto = base * 2
-
-    dado = random.randint(5, 15)
-
-    if dado == 5:
-        await ctx.send(
-            f"⚡ **SPRINT FALLIDO — {nombre}**\n"
-            f"😖 Tropiezas al acelerar.\n"
-            f"📏 No avanzás metros.\n"
-            f"🔋 Estamina conservada."
-        )
-        return
+    tipo = carrera["tipo"]
+    gasto = GASTO_ESTAMINA[tipo] * 2
 
     if estamina.get(ctx.author.id, 0) < gasto:
         await ctx.send("🥵 No tenés estamina suficiente.")
         return
 
-    metros = velocidad * dado // 10
+    dado = random.randint(5, 15)
 
+    if dado == 5:
+        await ctx.send("⚡ Sprint fallido, no avanzás metros.")
+        return
+
+    metros = velocidad * dado // 10
     estamina[ctx.author.id] -= gasto
     carrera["participantes"][ctx.author.id] += metros
 
     await ctx.send(
-        f"🏁 **{nombre} ({tipo.upper()})**\n"
+        f"🔥 **SPRINT — {nombre} ({tipo.upper()})**\n"
         f"🎲 Dado: {dado}\n"
-        f"📏 Avance este turno: **{metros} m**\n"
-        f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
-        f"🔥 Gasto: -{gasto}\n"
-        f"🔋 Estamina: **{estamina[ctx.author.id]}**"
+        f"📏 +{metros} m\n"
+        f"📍 Total: {carrera['participantes'][ctx.author.id]} m\n"
+        f"🔋 Estamina: {estamina[ctx.author.id]}"
     )
+
+# =========================
+# ADMIN
+# =========================
 
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def admin_carreras(ctx, accion: str = None, *, nombre: str = None):
-    # =====================
-    # LISTAR CARRERAS
-    # =====================
     if accion is None:
         if not carreras:
             await ctx.send("📭 No hay carreras activas.")
             return
 
         mensaje = "📋 **CARRERAS ACTIVAS**\n"
-        for nombre_carrera, carrera in carreras.items():
-            creador = await bot.fetch_user(carrera["creador"])
-            mensaje += (
-                f"\n🏁 **{nombre_carrera}**\n"
-                f"📌 Tipo: {carrera['tipo'].upper()}\n"
-                f"👤 Creador: {creador.display_name}\n"
-                f"👥 Participantes: {len(carrera['participantes'])}\n"
-            )
-
+        for n, c in carreras.items():
+            creador = await bot.fetch_user(c["creador"])
+            mensaje += f"\n🏁 {n} — {c['tipo'].upper()} | 👤 {creador.display_name}"
         await ctx.send(mensaje)
         return
 
-    # =====================
-    # BORRAR CARRERA
-    # =====================
-    if accion.lower() == "borrar":
-        if nombre is None:
-            await ctx.send("❌ Debés indicar el nombre de la carrera.")
-            return
-
-        if nombre not in carreras:
-            await ctx.send("❌ Esa carrera no existe.")
-            return
-
+    if accion.lower() == "borrar" and nombre in carreras:
         del carreras[nombre]
-
-        await ctx.send(
-            f"🧹 **Carrera eliminada por administración**\n"
-            f"📛 {nombre}"
-        )
+        await ctx.send(f"🧹 Carrera **{nombre}** eliminada.")
         return
 
-    # =====================
-    # ACCIÓN INVÁLIDA
-    # =====================
-    await ctx.send("❌ Acción inválida. Usá `borrar` o nada.")
-
-
-# =========================
-# ERRORES DE PERMISOS
-# =========================
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.send("🚫 No tenés permisos para usar este comando.")
+    await ctx.send("❌ Acción inválida.")
 
 # =========================
 # INICIO
 # =========================
 
 bot.run(os.getenv("DISCORD_TOKEN"))
+
