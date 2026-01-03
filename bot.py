@@ -187,13 +187,14 @@ async def correr(ctx, velocidad: int):
     estamina[ctx.author.id] -= gasto
     carrera["participantes"][ctx.author.id] += metros
 
-await ctx.send(
-    f"🏁 **{nombre} ({tipo.upper()})**\n"
-    f"🎲 Dado: {dado}\n"
-    f"📏 Avance este turno: **{metros} m**\n"
-    f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
-    f"🔋 Estamina: **{estamina[ctx.author.id]}**"
-)
+    await ctx.send(
+        f"🏁 **{nombre} ({tipo.upper()})**\n"
+        f"🎲 Dado: {dado}\n"
+        f"📏 Avance este turno: **{metros} m**\n"
+        f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
+        f"🔋 Estamina: **{estamina[ctx.author.id]}**"
+    )
+
 
 
 @bot.command()
@@ -204,7 +205,8 @@ async def trote(ctx, velocidad: int):
         await ctx.send("❌ No estás en ninguna carrera.")
         return
 
-    base = GASTO_ESTAMINA[carrera["tipo"]]
+    tipo = carrera["tipo"]
+    base = GASTO_ESTAMINA[tipo]
     recupera = base // 2
 
     dado = random.randint(1, 5)
@@ -214,13 +216,14 @@ async def trote(ctx, velocidad: int):
     carrera["participantes"][ctx.author.id] += metros
 
     await ctx.send(
-        f"🏁 **{nombre} ({tipo.upper()})**\n"
+        f"🚶 **TROTE — {nombre} ({tipo.upper()})**\n"
         f"🎲 Dado: {dado}\n"
         f"📏 Avance este turno: **{metros} m**\n"
         f"📍 Total acumulado: **{carrera['participantes'][ctx.author.id]} m**\n"
         f"💚 Recuperás: +{recupera}\n"
         f"🔋 Estamina: **{estamina[ctx.author.id]}**"
     )
+
 
 @bot.command()
 async def sprint(ctx, velocidad: int):
